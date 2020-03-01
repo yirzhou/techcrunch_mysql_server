@@ -4,31 +4,23 @@ import (
 	"log"
 	"net/http"
 
+	"medium_mysql_server/api"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
 // Server is a struct that will respond to various requests.
 type Server struct {
-	api *API
+	api *api.API
 }
 
 func main() {
+	dbServer := Server{api.NewAPI()}
+
 	mux := http.NewServeMux()
-	dbServer := Server{NewAPI()}
 	mux.HandleFunc("/posts", dbServer.GetPostsHandler)
+	mux.HandleFunc("/authors", dbServer.GetPostAuthorHandler)
+
+	log.Printf("Starting Listening on port [%d]...\n", 8080)
 	http.ListenAndServe("127.0.0.1:8080", mux)
-
-}
-
-// GetPostsHandler returns all
-func (dbServer *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
-	postsJSON, jsonErr := dbServer.api.GetPosts()
-
-	if jsonErr != nil {
-		log.Fatal(jsonErr)
-		panic(jsonErr.Error())
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(postsJSON)
 }
