@@ -7,13 +7,15 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	_ "github.com/go-sql-driver/mysql"
 )
 
-const InstanceID = "i-082a39858ce1d7279"
+const InstanceId = "i-082a39858ce1d7279"
+const Region = "us-east-1"
+const Port = 3306
+const User = "go:zhou98@tcp"
 
 // API is the API object to interact with MySQL server
 type API struct {
@@ -22,7 +24,8 @@ type API struct {
 
 // NewAPI returns an API object that is used to interact with MySQL server
 func NewAPI() *API {
-	db, err := sql.Open("mysql", "go:zhou98@tcp(54.173.164.111:3306)/medium?parseTime=true")
+	connection := fmt.Sprintf("%s(%s:%d)/medium?parseTime=true", User, getServerIP(), Port)
+	db, err := sql.Open("mysql", connection)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -82,27 +85,44 @@ func (api *API) GetAuthors() ([]byte, error) {
 	return jsonResponse, jsonError
 }
 
-func getServerIP() {
-	svc := ec2.New(session.New())
-	input := &ec2.DescribeInstanceAttributeInput{
-		Attribute:  aws.String("instanceType"),
-		InstanceId: aws.String(InstanceID),
-	}
+// GetMaxPostId returns the largest postID found in DB.
+// It can be used for creating a new post.
+func (api *API) GetMaxPostId() int64 {
+	q := `select max(postID) from Post;`
+	rows := api.executeQuery(q)
 
-	result, err := svc.DescribeInstanceAttribute(input)
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			default:
-				fmt.Println(aerr.Error())
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
+	var maxPostId int64
+	for rows.Next() {
+		if err := rows.Scan(&maxPostId); err != nil {
+			log.Fatal(err)
 		}
-		return
+	}
+	defer rows.Close()
+	return maxPostId
+}
+
+func getServerIP() string {
+	session, err := session.NewSession(&aws.Config{
+		Region: aws.String(Region),
+	})
+
+	if err != nil {
+		log.Print(err.Error())
+		panic(err)
 	}
 
-	fmt.Println(result)
+	svc := ec2.New(session)
+	input := &ec2.DescribeInstancesInput{
+		InstanceIds: []*string{
+			aws.String(InstanceId),
+		},
+	}
+
+	result, err := svc.DescribeInstances(input)
+	if err != nil {
+		log.Fatal(err)
+		panic(err)
+	}
+
+	return *result.Reservations[0].Instances[0].PublicIpAddress
 }

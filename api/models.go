@@ -27,12 +27,12 @@ type Author struct {
 
 // Tag is an object with postID and tag
 type Tag struct {
-	PostID int64  `json:"post_id"`
-	Tag    string `json:"tag"`
+	PostID int64          `json:"post_id"`
+	Tag    sql.NullString `json:"tag"`
 }
 
 // Topic is an object with postID and topic
 type Topic struct {
-	PostID int64  `json:"post_id"`
-	Topic  string `json:"topic"`
+	PostID int64          `json:"post_id"`
+	Topic  sql.NullString `json:"topic"`
 }
