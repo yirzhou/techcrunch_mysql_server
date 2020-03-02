@@ -36,3 +36,18 @@ type Topic struct {
 	PostID int64          `json:"post_id"`
 	Topic  sql.NullString `json:"topic"`
 }
+
+// PostInfo represents a Post with tags and topics.
+type PostInfo struct {
+	PostID   int64          `json:"post_id"`
+	Authors  []string       `json:"authors"`
+	Category sql.NullString `json:"category"`
+	Content  string         `json:"content"`
+	Date     time.Time      `json:"date"`
+	ImageSrc sql.NullString `json:"image_src"`
+	Section  sql.NullString `json:"section"`
+	Title    string         `json:"title"`
+	URL      sql.NullString `json:"url"`
+	Tags     []string       `json:"tags"`
+	Topics   []string       `json:"topics"`
+}

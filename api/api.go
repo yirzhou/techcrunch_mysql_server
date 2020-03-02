@@ -85,6 +85,77 @@ func (api *API) GetAuthors() ([]byte, error) {
 	return jsonResponse, jsonError
 }
 
+// InsertPostTag inserts a new tag for a post to DB
+func (api *API) InsertPostTag(tagInfo Tag) error {
+	stmtIns, err := api.db.Prepare("insert into PostTag values( ?, ?)")
+	if err != nil {
+		log.Print(err.Error())
+		return err
+	}
+	if _, err = stmtIns.Exec(
+		tagInfo.PostID,
+		tagInfo.Tag); err != nil {
+		log.Print(err.Error())
+	}
+
+	defer stmtIns.Close()
+	return err
+}
+
+// InsertPostTopic inserts a new topic for a post to DB
+func (api *API) InsertPostTopic(topicInfo Topic) error {
+	stmtIns, err := api.db.Prepare("insert into PostTopic values( ?, ?)")
+	if err != nil {
+		log.Print(err.Error())
+		return err
+	}
+	if _, err = stmtIns.Exec(
+		topicInfo.PostID,
+		topicInfo.Topic); err != nil {
+		log.Print(err.Error())
+	}
+
+	defer stmtIns.Close()
+	return err
+}
+
+// InsertPostAuthor inserts an author for a post to DB
+func (api *API) InsertPostAuthor(author Author) error {
+	stmtIns, err := api.db.Prepare("insert into PostAuthor values( ?, ?)")
+	if err != nil {
+		log.Print(err.Error())
+		return err
+	}
+	if _, err = stmtIns.Exec(
+		author.PostID,
+		author.AuthorID); err != nil {
+		log.Print(err.Error())
+	}
+
+	defer stmtIns.Close()
+	return err
+}
+
+// InsertPost inserts a new post to DB.
+func (api *API) InsertPost(postInfo PostInfo) error {
+	stmtIns, err := api.db.Prepare("insert into Post values( ?, ?, ?, ?, ?, ?, ?, ? )")
+	if err != nil {
+		log.Print(err.Error())
+		return err
+	}
+	_, err = stmtIns.Exec(
+		postInfo.PostID,
+		postInfo.Category,
+		postInfo.Content,
+		postInfo.Date,
+		postInfo.ImageSrc,
+		postInfo.Section,
+		postInfo.Title,
+		postInfo.URL)
+	defer stmtIns.Close()
+	return err
+}
+
 // GetMaxPostId returns the largest postID found in DB.
 // It can be used for creating a new post.
 func (api *API) GetMaxPostId() int64 {
