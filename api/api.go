@@ -12,10 +12,12 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-const InstanceId = "i-082a39858ce1d7279"
-const Region = "us-east-1"
-const Port = 3306
-const User = "go:zhou98@tcp"
+const (
+	InstanceId = "i-082a39858ce1d7279"
+	Region     = "us-east-1"
+	Port       = 3306
+	User       = "go:zhou98@tcp"
+)
 
 // API is the API object to interact with MySQL server
 type API struct {
@@ -35,7 +37,7 @@ func NewAPI() *API {
 func (api *API) executeQuery(q string) *sql.Rows {
 	rows, err := api.db.Query(q)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	return rows
 }
@@ -56,7 +58,7 @@ func (api *API) GetPosts() ([]byte, error) {
 			&post.Section,
 			&post.Title,
 			&post.URL); err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		posts = append(posts, post)
 	}
@@ -75,7 +77,7 @@ func (api *API) GetAuthors() ([]byte, error) {
 	for rows.Next() {
 		author := &Author{}
 		if err := rows.Scan(&author.PostID, &author.AuthorID); err != nil {
-			log.Fatal(err)
+			log.Println(err.Error())
 		}
 		authors = append(authors, author)
 	}
@@ -89,17 +91,119 @@ func (api *API) GetAuthors() ([]byte, error) {
 func (api *API) InsertPostTag(tagInfo Tag) error {
 	stmtIns, err := api.db.Prepare("insert into PostTag values( ?, ?)")
 	if err != nil {
-		log.Print(err.Error())
+		log.Println(err.Error())
 		return err
 	}
 	if _, err = stmtIns.Exec(
 		tagInfo.PostID,
 		tagInfo.Tag); err != nil {
-		log.Print(err.Error())
+		log.Println(err.Error())
 	}
 
 	defer stmtIns.Close()
 	return err
+}
+
+// GetTopicCount returns the number of occurrences of a topic.
+func (api *API) GetTopicCount(topicInfo Topic) int {
+	q := fmt.Sprintf("select count(*) from Topic where topic='%s';", topicInfo.Topic.String)
+	rows := api.executeQuery(q)
+	topicCount := 0
+	for rows.Next() {
+		if err := rows.Scan(&topicCount); err != nil {
+			log.Println(err)
+		}
+	}
+	defer rows.Close()
+	return topicCount
+}
+
+// CheckIfCategoryExists checks if the category already exists.
+func (api *API) CheckIfCategoryExists(category sql.NullString) bool {
+	q := fmt.Sprintf("select count(*) from Category where category='%s';", category.String)
+	rows := api.executeQuery(q)
+	categoryCount := 0
+	for rows.Next() {
+		if err := rows.Scan(&categoryCount); err != nil {
+			log.Println(err)
+		}
+	}
+	defer rows.Close()
+	if categoryCount == 1 {
+		return true
+	}
+	return false
+}
+
+// CheckIfTagExists checks if the tag already exists.
+func (api *API) CheckIfTagExists(tagInfo Tag) bool {
+	q := fmt.Sprintf("select count(*) from Tag where tag='%s';", tagInfo.Tag.String)
+	rows := api.executeQuery(q)
+	tagCount := 0
+	for rows.Next() {
+		if err := rows.Scan(&tagCount); err != nil {
+			log.Println(err)
+		}
+	}
+	defer rows.Close()
+	if tagCount > 0 {
+		return true
+	}
+	return false
+}
+
+// InsertNewTag creates a new tag in DB.
+func (api *API) InsertNewTag(tagInfo Tag) error {
+	if existed := api.CheckIfTagExists(tagInfo); !existed {
+		stmtIns, err := api.db.Prepare("insert into Tag values( ? )")
+		if err != nil {
+			log.Println(err.Error())
+			return err
+		}
+
+		if _, err = stmtIns.Exec(tagInfo.Tag.String); err != nil {
+			log.Println(err.Error())
+			return err
+		}
+		defer stmtIns.Close()
+	}
+	return nil
+}
+
+// InsertNewCategory creates a new category in DB.
+func (api *API) InsertNewCategory(category sql.NullString) error {
+	if existed := api.CheckIfCategoryExists(category); !existed {
+		stmtIns, err := api.db.Prepare("insert into Category values( ? )")
+		if err != nil {
+			log.Println(err.Error())
+			return err
+		}
+
+		if _, err = stmtIns.Exec(category.String); err != nil {
+			log.Println(err.Error())
+			return err
+		}
+		defer stmtIns.Close()
+	}
+	return nil
+}
+
+// InsertNewTopic creates a new topic in DB.
+func (api *API) InsertNewTopic(topicInfo Topic) error {
+	if topicCount := api.GetTopicCount(topicInfo); topicCount == 0 {
+		stmtIns, err := api.db.Prepare("insert into Topic values( ? )")
+		if err != nil {
+			log.Println(err.Error())
+			return err
+		}
+
+		if _, err = stmtIns.Exec(topicInfo.Topic.String); err != nil {
+			log.Println(err.Error())
+			return err
+		}
+		defer stmtIns.Close()
+	}
+	return nil
 }
 
 // InsertPostTopic inserts a new topic for a post to DB

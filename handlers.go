@@ -62,17 +62,27 @@ func (dbServer *Server) PostArticleHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	newPostId := dbServer.api.GetMaxPostId() + 1
+
 	reqPost.Date = time.Now()
 	reqPost.PostID = newPostId
-	err := dbServer.api.InsertPost(reqPost)
 
-	// Insert Tags, Topics, and Authors
+	var err error
+	err = dbServer.api.InsertPost(reqPost)
+	// Insert Category, Tags, Topics, and Authors
+	if err := dbServer.api.InsertNewCategory(reqPost.Category); err != nil {
+		log.Println(err.Error())
+	}
+
 	for _, tag := range reqPost.Tags {
-		err = dbServer.api.InsertPostTag(api.Tag{PostID: newPostId, Tag: sql.NullString{String: tag, Valid: true}})
+		tagInfo := api.Tag{PostID: newPostId, Tag: sql.NullString{String: tag, Valid: true}}
+		err = dbServer.api.InsertNewTag(tagInfo)
+		err = dbServer.api.InsertPostTag(tagInfo)
 	}
 
 	for _, topic := range reqPost.Topics {
-		err = dbServer.api.InsertPostTopic(api.Topic{PostID: newPostId, Topic: sql.NullString{String: topic, Valid: true}})
+		topicInfo := api.Topic{PostID: newPostId, Topic: sql.NullString{String: topic, Valid: true}}
+		err = dbServer.api.InsertNewTopic(topicInfo)
+		err = dbServer.api.InsertPostTopic(topicInfo)
 	}
 
 	for _, author := range reqPost.Authors {
