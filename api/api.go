@@ -195,5 +195,7 @@ func getServerIP() string {
 		panic(err)
 	}
 
-	return *result.Reservations[0].Instances[0].PublicIpAddress
+	serverIP := *result.Reservations[0].Instances[0].PublicIpAddress
+	log.Printf("ServerIP Found: [%s]\n", serverIP)
+	return serverIP
 }
