@@ -20,6 +20,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/posts", dbServer.GetPostsHandler)
+	mux.HandleFunc("/groups", dbServer.GetGroupsHandler)
 	mux.HandleFunc("/authors", dbServer.GetPostAuthorHandler)
 	mux.HandleFunc("/posts/new", dbServer.PostArticleHandler)
 

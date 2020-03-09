@@ -51,3 +51,22 @@ type PostInfo struct {
 	Tags     []string       `json:"tags"`
 	Topics   []string       `json:"topics"`
 }
+
+// UserGroupInfo is the primitive data struct for retrieving information of available groups.
+type UserGroupInfo struct {
+	GroupID   int64  `json:"group_id"`
+	UserID    string `json:"user_id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+}
+
+// UserGroupListing is the actual data struct returned from the server.
+type UserGroupListing struct {
+	GroupID int64  `json:"group_id"`
+	Users   []User `json:"users"`
+}
+
+type User struct {
+	UserID   string `json:"user_id"`
+	FullName string `json:"full_name"`
+}

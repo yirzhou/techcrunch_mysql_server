@@ -20,12 +20,27 @@ func (dbServer *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) 
 	postsJSON, jsonErr := dbServer.api.GetPosts()
 
 	if jsonErr != nil {
-		log.Fatal(jsonErr)
-		panic(jsonErr.Error())
+		log.Println(jsonErr)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(postsJSON)
+}
+
+// GetGroupsHandler returns information of available/existing groups.
+func (dbServer *Server) GetGroupsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprint(w, "invalid_http_method")
+		return
+	}
+	groupsJSON, jsonErr := dbServer.api.ListGroupsWithId()
+	if jsonErr != nil {
+		log.Println(jsonErr)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(groupsJSON)
 }
 
 // GetPostAuthorHandler returns all authors

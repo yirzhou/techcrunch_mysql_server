@@ -16,7 +16,7 @@ const (
 	InstanceId = "i-082a39858ce1d7279"
 	Region     = "us-east-1"
 	Port       = 3306
-	User       = "go:zhou98@tcp"
+	GoUser     = "go:zhou98@tcp"
 )
 
 // API is the API object to interact with MySQL server
@@ -26,7 +26,7 @@ type API struct {
 
 // NewAPI returns an API object that is used to interact with MySQL server
 func NewAPI() *API {
-	connection := fmt.Sprintf("%s(%s:%d)/medium?parseTime=true", User, getServerIP(), Port)
+	connection := fmt.Sprintf("%s(%s:%d)/medium?parseTime=true", GoUser, getServerIP(), Port)
 	db, err := sql.Open("mysql", connection)
 	if err != nil {
 		panic(err.Error())
@@ -66,6 +66,33 @@ func (api *API) GetPosts() ([]byte, error) {
 
 	jsonResponse, jsonError := json.Marshal(posts)
 	return jsonResponse, jsonError
+}
+
+func (api *API) ListGroupsWithId() ([]byte, error) {
+	q := `select groupID, userID, firstName, lastName from UserGroup inner join User using (userID) order by groupID asc;`
+	rows := api.executeQuery(q)
+
+	groups := make([]*UserGroupListing, 1)
+	var previousGroupId int64
+	previousGroupId = 0
+	for rows.Next() {
+		var groupID int64
+		var userID, firstName, lastName string
+
+		if err := rows.Scan(&groupID, &userID, &firstName, &lastName); err != nil {
+			if previousGroupId != groupID {
+				group := &UserGroupListing{GroupID: groupID, Users: make([]User, 1)}
+				group.Users = append(group.Users, User{UserID: userID, FullName: fmt.Sprintf("%s %s", firstName, lastName)})
+				previousGroupId = groupID
+				groups = append(groups, group)
+			} else {
+				groups[previousGroupId-1].Users = append(groups[previousGroupId-1].Users, User{UserID: userID, FullName: fmt.Sprintf("%s %s", firstName, lastName)})
+			}
+		}
+	}
+	defer rows.Close()
+	fmt.Print(groups)
+	return json.Marshal(groups)
 }
 
 // GetAuthors retrieves all posts and their corresponding authors.
@@ -269,11 +296,27 @@ func (api *API) GetMaxPostId() int64 {
 	var maxPostId int64
 	for rows.Next() {
 		if err := rows.Scan(&maxPostId); err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 	}
 	defer rows.Close()
 	return maxPostId
+}
+
+// GetMaxGroupId returns the max groupID from UserGroup.
+// It is used to create a new group
+func (api *API) GetMaxGroupId() int64 {
+	q := `select max(groupID) from UserGroup;`
+	rows := api.executeQuery(q)
+
+	var maxGroupId int64
+	for rows.Next() {
+		if err := rows.Scan(&maxGroupId); err != nil {
+			log.Println(err.Error())
+		}
+	}
+	defer rows.Close()
+	return maxGroupId
 }
 
 func getServerIP() string {
