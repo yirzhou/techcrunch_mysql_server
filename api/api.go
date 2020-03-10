@@ -91,7 +91,6 @@ func (api *API) ListGroupsWithId() ([]byte, error) {
 		}
 	}
 	defer rows.Close()
-	fmt.Print(groups)
 	return json.Marshal(groups)
 }
 
