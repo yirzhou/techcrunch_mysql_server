@@ -68,6 +68,13 @@ func (api *API) GetPosts() ([]byte, error) {
 	return jsonResponse, jsonError
 }
 
+func (api *API) UpdateGroupWithUser(groupId int64, userId string) error {
+	q := fmt.Sprintf("insert into UserGroup values (%d, '%s');", groupId, userId)
+	log.Printf("query to execute: %s\n", q)
+	_, err := api.db.Query(q)
+	return err
+}
+
 // ListGroupsWithId returns information of available groups.
 func (api *API) ListGroupsWithId() ([]byte, error) {
 	q := `select groupID, userID, firstName, lastName from UserGroup inner join User using (userID) order by groupID asc;`

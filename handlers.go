@@ -7,7 +7,10 @@ import (
 	"log"
 	"medium_mysql_server/api"
 	"net/http"
+	"strconv"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 // GetPostsHandler returns all posts
@@ -25,6 +28,25 @@ func (dbServer *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(postsJSON)
+}
+
+// JoinGroupHandler adds a user to an existing group
+func (dbServer *Server) JoinGroupHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprint(w, "invalid_http_method")
+		return
+	}
+
+	groupId, _ := strconv.ParseInt(mux.Vars(r)["groupId"], 10, 64)
+	userId := r.FormValue("user_id")
+	if err := dbServer.api.UpdateGroupWithUser(groupId, userId); err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, err.Error())
+	} else {
+		w.WriteHeader(http.StatusAccepted)
+	}
 }
 
 // GetGroupsHandler returns information of available/existing groups.
