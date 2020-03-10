@@ -40,7 +40,24 @@ func (dbServer *Server) JoinGroupHandler(w http.ResponseWriter, r *http.Request)
 
 	groupId, _ := strconv.ParseInt(mux.Vars(r)["groupId"], 10, 64)
 	userId := r.FormValue("user_id")
-	if err := dbServer.api.UpdateGroupWithUser(groupId, userId); err != nil {
+	if err := dbServer.api.AddUserToGroup(groupId, userId); err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, err.Error())
+	} else {
+		w.WriteHeader(http.StatusAccepted)
+	}
+}
+
+func (dbServer *Server) FollowTopicHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprint(w, "invalid_http_method")
+		return
+	}
+	userId := mux.Vars(r)["userId"]
+	topic := r.FormValue("topic")
+	if err := dbServer.api.AddFollowedTopic(userId, topic); err != nil {
 		log.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, err.Error())
@@ -65,6 +82,22 @@ func (dbServer *Server) GetGroupsHandler(w http.ResponseWriter, r *http.Request)
 	w.Write(groupsJSON)
 }
 
+func (dbServer *Server) GetFollowedTopicsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprint(w, "invalid_http_method")
+		return
+	}
+	userId := mux.Vars(r)["userId"]
+	topicsJSON, jsonErr := dbServer.api.GetFollowedTopics(userId)
+	if jsonErr != nil {
+		log.Println(jsonErr.Error())
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(topicsJSON)
+}
+
 // GetPostAuthorHandler returns all authors
 func (dbServer *Server) GetPostAuthorHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -75,9 +108,9 @@ func (dbServer *Server) GetPostAuthorHandler(w http.ResponseWriter, r *http.Requ
 	authorsJSON, jsonErr := dbServer.api.GetAuthors()
 
 	if jsonErr != nil {
-		log.Fatal(jsonErr)
-		panic(jsonErr.Error())
+		log.Println(jsonErr.Error())
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(authorsJSON)

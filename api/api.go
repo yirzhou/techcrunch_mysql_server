@@ -68,11 +68,38 @@ func (api *API) GetPosts() ([]byte, error) {
 	return jsonResponse, jsonError
 }
 
-func (api *API) UpdateGroupWithUser(groupId int64, userId string) error {
+// AddUserToGroup will add a user to a group.
+func (api *API) AddUserToGroup(groupId int64, userId string) error {
 	q := fmt.Sprintf("insert into UserGroup values (%d, '%s');", groupId, userId)
-	log.Printf("query to execute: %s\n", q)
 	_, err := api.db.Query(q)
 	return err
+}
+
+// AddFollowedTopic will add a topic to the followed topics of a user.
+func (api *API) AddFollowedTopic(userId string, topic string) error {
+	stmtIns, err := api.db.Prepare("insert into FollowingTopic values( ?, ?)")
+	if _, err := stmtIns.Exec(userId, topic); err != nil {
+		log.Println(err)
+	}
+	return err
+}
+
+// GetFollowedTopics retrieves all the topics the user follows.
+func (api *API) GetFollowedTopics(userId string) ([]byte, error) {
+	q := fmt.Sprintf(`select topic from FollowingTopic where userID='%s';`, userId)
+	rows := api.executeQuery(q)
+
+	topics := make([]string, 0)
+	var topic string
+	for rows.Next() {
+		if err := rows.Scan(&topic); err == nil {
+			topics = append(topics, topic)
+		} else {
+			log.Println(err.Error())
+		}
+	}
+	defer rows.Close()
+	return json.Marshal(topics)
 }
 
 // ListGroupsWithId returns information of available groups.
