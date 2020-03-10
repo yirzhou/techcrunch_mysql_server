@@ -68,26 +68,26 @@ func (api *API) GetPosts() ([]byte, error) {
 	return jsonResponse, jsonError
 }
 
+// ListGroupsWithId returns information of available groups.
 func (api *API) ListGroupsWithId() ([]byte, error) {
 	q := `select groupID, userID, firstName, lastName from UserGroup inner join User using (userID) order by groupID asc;`
 	rows := api.executeQuery(q)
 
-	groups := make([]*UserGroupListing, 1)
-	var previousGroupId int64
-	previousGroupId = 0
+	groups := make(map[int64]*UserGroupListing)
 	for rows.Next() {
 		var groupID int64
 		var userID, firstName, lastName string
 
-		if err := rows.Scan(&groupID, &userID, &firstName, &lastName); err != nil {
-			if previousGroupId != groupID {
-				group := &UserGroupListing{GroupID: groupID, Users: make([]User, 1)}
+		if err := rows.Scan(&groupID, &userID, &firstName, &lastName); err == nil {
+			if groupListing, ok := groups[groupID]; !ok {
+				group := &UserGroupListing{GroupID: groupID, Users: make([]User, 0)}
 				group.Users = append(group.Users, User{UserID: userID, FullName: fmt.Sprintf("%s %s", firstName, lastName)})
-				previousGroupId = groupID
-				groups = append(groups, group)
+				groups[groupID] = group
 			} else {
-				groups[previousGroupId-1].Users = append(groups[previousGroupId-1].Users, User{UserID: userID, FullName: fmt.Sprintf("%s %s", firstName, lastName)})
+				groupListing.Users = append(groupListing.Users, User{UserID: userID, FullName: fmt.Sprintf("%s %s", firstName, lastName)})
 			}
+		} else {
+			log.Println(err.Error())
 		}
 	}
 	defer rows.Close()
