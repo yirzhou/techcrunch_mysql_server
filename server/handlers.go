@@ -1,26 +1,26 @@
-package main
+package server
 
 import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
-	"medium_mysql_server/api"
 	"net/http"
 	"strconv"
 	"time"
+
+	"medium_mysql_server/api"
 
 	"github.com/gorilla/mux"
 )
 
 // GetPostsHandler returns all posts
-func (dbServer *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprint(w, "invalid_http_method")
+func (server *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodGet) {
 		return
 	}
-	postsJSON, jsonErr := dbServer.api.GetPosts()
+
+	postsJSON, jsonErr := server.api.GetPosts()
 
 	if jsonErr != nil {
 		log.Println(jsonErr)
@@ -30,17 +30,13 @@ func (dbServer *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) 
 	w.Write(postsJSON)
 }
 
-// JoinGroupHandler adds a user to an existing group
-func (dbServer *Server) JoinGroupHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprint(w, "invalid_http_method")
+// UserLogInHandler logs a user in.
+func (server *Server) UserLoginHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodPost) {
 		return
 	}
 
-	groupId, _ := strconv.ParseInt(mux.Vars(r)["groupId"], 10, 64)
-	userId := r.FormValue("user_id")
-	if err := dbServer.api.AddUserToGroup(groupId, userId); err != nil {
+	if err := server.api.LogUserIn(mux.Vars(r)["userId"]); err != nil {
 		log.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, err.Error())
@@ -49,15 +45,31 @@ func (dbServer *Server) JoinGroupHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (dbServer *Server) FollowTopicHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprint(w, "invalid_http_method")
+// JoinGroupHandler adds a user to an existing group
+func (server *Server) JoinGroupHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodPut) {
 		return
 	}
+
+	groupId, _ := strconv.ParseInt(mux.Vars(r)["groupId"], 10, 64)
+	userId := r.FormValue("user_id")
+	if err := server.api.AddUserToGroup(groupId, userId); err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, err.Error())
+	} else {
+		w.WriteHeader(http.StatusAccepted)
+	}
+}
+
+func (server *Server) FollowTopicHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodPut) {
+		return
+	}
+
 	userId := mux.Vars(r)["userId"]
 	topic := r.FormValue("topic")
-	if err := dbServer.api.AddFollowedTopic(userId, topic); err != nil {
+	if err := server.api.AddFollowedTopic(userId, topic); err != nil {
 		log.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, err.Error())
@@ -67,13 +79,12 @@ func (dbServer *Server) FollowTopicHandler(w http.ResponseWriter, r *http.Reques
 }
 
 // GetGroupsHandler returns information of available/existing groups.
-func (dbServer *Server) GetGroupsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprint(w, "invalid_http_method")
+func (server *Server) GetGroupsHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodGet) {
 		return
 	}
-	groupsJSON, jsonErr := dbServer.api.ListGroupsWithId()
+
+	groupsJSON, jsonErr := server.api.ListGroupsWithId()
 	if jsonErr != nil {
 		log.Println(jsonErr)
 	}
@@ -82,14 +93,13 @@ func (dbServer *Server) GetGroupsHandler(w http.ResponseWriter, r *http.Request)
 	w.Write(groupsJSON)
 }
 
-func (dbServer *Server) GetFollowedTopicsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprint(w, "invalid_http_method")
+func (server *Server) GetFollowedTopicsHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodGet) {
 		return
 	}
+
 	userId := mux.Vars(r)["userId"]
-	topicsJSON, jsonErr := dbServer.api.GetFollowedTopics(userId)
+	topicsJSON, jsonErr := server.api.GetFollowedTopics(userId)
 	if jsonErr != nil {
 		log.Println(jsonErr.Error())
 	}
@@ -99,13 +109,12 @@ func (dbServer *Server) GetFollowedTopicsHandler(w http.ResponseWriter, r *http.
 }
 
 // GetPostAuthorHandler returns all authors
-func (dbServer *Server) GetPostAuthorHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprint(w, "invalid_http_method")
+func (server *Server) GetPostAuthorHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodGet) {
 		return
 	}
-	authorsJSON, jsonErr := dbServer.api.GetAuthors()
+
+	authorsJSON, jsonErr := server.api.GetAuthors()
 
 	if jsonErr != nil {
 		log.Println(jsonErr.Error())
@@ -117,10 +126,8 @@ func (dbServer *Server) GetPostAuthorHandler(w http.ResponseWriter, r *http.Requ
 }
 
 // CreatePost creates a new post, inserts tags, topics, etc.
-func (dbServer *Server) PostArticleHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprint(w, "invalid_http_method")
+func (server *Server) PostArticleHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodPost) {
 		return
 	}
 
@@ -131,32 +138,32 @@ func (dbServer *Server) PostArticleHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	newPostId := dbServer.api.GetMaxPostId() + 1
+	newPostId := server.api.GetMaxPostId() + 1
 
 	reqPost.Date = time.Now()
 	reqPost.PostID = newPostId
 
 	var err error
-	err = dbServer.api.InsertPost(reqPost)
+	err = server.api.InsertPost(reqPost)
 	// Insert Category, Tags, Topics, and Authors
-	if err := dbServer.api.InsertNewCategory(reqPost.Category); err != nil {
+	if err := server.api.InsertNewCategory(reqPost.Category); err != nil {
 		log.Println(err.Error())
 	}
 
 	for _, tag := range reqPost.Tags {
 		tagInfo := api.Tag{PostID: newPostId, Tag: sql.NullString{String: tag, Valid: true}}
-		err = dbServer.api.InsertNewTag(tagInfo)
-		err = dbServer.api.InsertPostTag(tagInfo)
+		err = server.api.InsertNewTag(tagInfo)
+		err = server.api.InsertPostTag(tagInfo)
 	}
 
 	for _, topic := range reqPost.Topics {
 		topicInfo := api.Topic{PostID: newPostId, Topic: sql.NullString{String: topic, Valid: true}}
-		err = dbServer.api.InsertNewTopic(topicInfo)
-		err = dbServer.api.InsertPostTopic(topicInfo)
+		err = server.api.InsertNewTopic(topicInfo)
+		err = server.api.InsertPostTopic(topicInfo)
 	}
 
 	for _, author := range reqPost.Authors {
-		err = dbServer.api.InsertPostAuthor(api.Author{PostID: newPostId, AuthorID: author})
+		err = server.api.InsertPostAuthor(api.Author{PostID: newPostId, AuthorID: author})
 	}
 
 	if err != nil {
@@ -166,4 +173,13 @@ func (dbServer *Server) PostArticleHandler(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusOK)
 		log.Printf("Post with ID [%d] has been created\n", reqPost.PostID)
 	}
+}
+
+func (server *Server) checkMethod(w *http.ResponseWriter, r *http.Request, correctMethod string) bool {
+	if r.Method != correctMethod {
+		(*w).WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprint(*w, "invalid_http_method")
+		return false
+	}
+	return true
 }

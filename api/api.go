@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -147,16 +148,26 @@ func (api *API) GetAuthors() ([]byte, error) {
 	return jsonResponse, jsonError
 }
 
-// InsertPostTag inserts a new tag for a post to DB
-func (api *API) InsertPostTag(tagInfo Tag) error {
-	stmtIns, err := api.db.Prepare("insert into PostTag values( ?, ?)")
+// LogUserIn logs a user in.
+func (api *API) LogUserIn(userId string) error {
+	stmtIns, err := api.db.Prepare("update User set lastLoggedIn=?, isLoggedIn=1 where userID=?;")
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
-	if _, err = stmtIns.Exec(
-		tagInfo.PostID,
-		tagInfo.Tag); err != nil {
+
+	if _, err = stmtIns.Exec(time.Now(), userId); err != nil {
+		log.Println(err)
+	}
+	defer stmtIns.Close()
+	return err
+}
+
+// InsertPostTag inserts a new tag for a post to DB
+func (api *API) InsertPostTag(tagInfo Tag) error {
+	stmtIns, err := api.db.Prepare("insert into PostTag values( ?, ?)")
+
+	if _, err = stmtIns.Exec(tagInfo.PostID, tagInfo.Tag); err != nil {
 		log.Println(err.Error())
 	}
 
