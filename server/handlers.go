@@ -31,17 +31,32 @@ func (server *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // UserLogInHandler logs a user in.
-func (server *Server) UserLoginHandler(w http.ResponseWriter, r *http.Request) {
+func (server *Server) UserAuthHandler(w http.ResponseWriter, r *http.Request) {
 	if !server.checkMethod(&w, r, http.MethodPost) {
 		return
 	}
+	userId := mux.Vars(r)["userId"]
+	action := mux.Vars(r)["action"]
 
-	if err := server.api.LogUserIn(mux.Vars(r)["userId"]); err != nil {
+	var err error
+	if action == "login" {
+		if err = server.api.AuthenticateUser(userId, action); err == nil {
+			w.WriteHeader(http.StatusAccepted)
+		}
+	} else if action == "logout" {
+		if err := server.api.AuthenticateUser(userId, action); err == nil {
+			w.WriteHeader(http.StatusAccepted)
+		}
+	} else {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, err.Error())
+	}
+
+	if err != nil {
 		log.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, err.Error())
-	} else {
-		w.WriteHeader(http.StatusAccepted)
 	}
 }
 

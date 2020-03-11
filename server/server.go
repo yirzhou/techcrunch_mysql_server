@@ -35,8 +35,8 @@ func (server *Server) registerRoutes() {
 	server.router.HandleFunc("/authors", server.GetPostAuthorHandler)
 	// GET: FollowedTopics
 	server.router.HandleFunc("/users/{userId}/topics", server.GetFollowedTopicsHandler)
-	// POST: User Login
-	server.router.HandleFunc("/users/{userId}/login", server.UserLoginHandler)
+	// POST: User Authentication
+	server.router.HandleFunc("/users/{userId}/{action:(?:login|logout)}", server.UserAuthHandler)
 	// POST: Post
 	server.router.HandleFunc("/posts/new", server.PostArticleHandler)
 	// PUT: Join UserGroup

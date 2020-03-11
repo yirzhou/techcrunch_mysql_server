@@ -148,9 +148,16 @@ func (api *API) GetAuthors() ([]byte, error) {
 	return jsonResponse, jsonError
 }
 
-// LogUserIn logs a user in.
-func (api *API) LogUserIn(userId string) error {
-	stmtIns, err := api.db.Prepare("update User set lastLoggedIn=?, isLoggedIn=1 where userID=?;")
+// AuthenticateUser logs a user in/out depending on the action.
+func (api *API) AuthenticateUser(userId string, action string) error {
+	var q string
+	if action == "login" {
+		q = "update User set lastLoggedIn=?, isLoggedIn=1 where userID=?;"
+	} else {
+		q = "update User set lastLoggedIn=?, isLoggedIn=0 where userID=?;"
+	}
+
+	stmtIns, err := api.db.Prepare(q)
 	if err != nil {
 		log.Println(err.Error())
 		return err
