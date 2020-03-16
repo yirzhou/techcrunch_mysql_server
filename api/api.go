@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -18,6 +19,8 @@ const (
 	Region     = "us-east-1"
 	Port       = 3306
 	GoUser     = "go:zhou98@tcp"
+	ThumbUp    = "thumbup"
+	ThumbDown  = "thumbdown"
 )
 
 // API is the API object to interact with MySQL server
@@ -35,12 +38,53 @@ func NewAPI() *API {
 	return &API{db}
 }
 
+func getServerIP() string {
+	session, err := session.NewSession(&aws.Config{
+		Region: aws.String(Region),
+	})
+
+	if err != nil {
+		log.Print(err.Error())
+		panic(err)
+	}
+
+	svc := ec2.New(session)
+	input := &ec2.DescribeInstancesInput{
+		InstanceIds: []*string{
+			aws.String(InstanceId),
+		},
+	}
+
+	result, err := svc.DescribeInstances(input)
+	if err != nil {
+		log.Fatal(err)
+		panic(err)
+	}
+
+	serverIP := *result.Reservations[0].Instances[0].PublicIpAddress
+	log.Printf("ServerIP Found: [%s]\n", serverIP)
+	return serverIP
+}
+
 func (api *API) executeQuery(q string) *sql.Rows {
 	rows, err := api.db.Query(q)
 	if err != nil {
 		log.Println(err)
 	}
 	return rows
+}
+
+func (api *API) checkIfRecordExists(key, column, table string) bool {
+	q := fmt.Sprintf("select count(1) from %s where %s=%s;", table, column, key)
+	rows := api.executeQuery(q)
+	existed := false
+
+	for rows.Next() {
+		if err := rows.Scan(&existed); err != nil {
+			log.Println(err.Error())
+		}
+	}
+	return existed
 }
 
 // GetPosts retrieves all posts.
@@ -427,30 +471,53 @@ func (api *API) GetMaxGroupId() int64 {
 	return maxGroupId
 }
 
-func getServerIP() string {
-	session, err := session.NewSession(&aws.Config{
-		Region: aws.String(Region),
-	})
+// ThumbUpDownPost adds a thumb-up or down to a Post.
+func (api *API) ThumbUpDownPost(postId, userId, action string) error {
+	var qUser, qPost string
+
+	if !api.checkIfRecordExists(postId, "postID", "Post") {
+		return errors.New("invalid request")
+	}
+
+	if action == ThumbUp {
+		qUser = `insert into UserThumbUp(userID, postID) values (?,?);`
+		if api.checkIfRecordExists(postId, "postID", "PostThumbUp") {
+			qPost = `update PostThumbUp set upCount=upCount+1 where postID=?;`
+		} else {
+			qPost = `insert into PostThumbUp(postID, upCount) values (?, 1);`
+		}
+
+		// Remove the thumbdown record for this (userID, postID)
+		stmtRemove, _ := api.db.Prepare("delete from UserThumbDown where userID=? and postID=?;")
+		_, _ = stmtRemove.Exec(userId, postId)
+		defer stmtRemove.Close()
+
+	} else if action == ThumbDown {
+		qUser = `insert into UserThumbDown(userID, postID) values (?,?);`
+		if api.checkIfRecordExists(postId, "postID", "PostThumbUp") {
+			qPost = `update PostThumbUp set upCount=upCount-1 where postID=?;`
+		} else {
+			qPost = `insert into PostThumbUp(postID, upCount) values (?, -1);`
+		}
+
+		// Remove the thumbup record for this (userID, postID)
+		stmtRemove, _ := api.db.Prepare("delete from UserThumbUp where userID=? and postID=?;")
+		_, _ = stmtRemove.Exec(userId, postId)
+		defer stmtRemove.Close()
+	} else {
+		return errors.New("invalid request")
+	}
+
+	stmtInsUser, err := api.db.Prepare(qUser)
+	_, err = stmtInsUser.Exec(userId, postId)
+	defer stmtInsUser.Close()
 
 	if err != nil {
-		log.Print(err.Error())
-		panic(err)
+		return err
 	}
 
-	svc := ec2.New(session)
-	input := &ec2.DescribeInstancesInput{
-		InstanceIds: []*string{
-			aws.String(InstanceId),
-		},
-	}
-
-	result, err := svc.DescribeInstances(input)
-	if err != nil {
-		log.Fatal(err)
-		panic(err)
-	}
-
-	serverIP := *result.Reservations[0].Instances[0].PublicIpAddress
-	log.Printf("ServerIP Found: [%s]\n", serverIP)
-	return serverIP
+	stmtInsPost, err := api.db.Prepare(qPost)
+	_, err = stmtInsPost.Exec(postId)
+	defer stmtInsPost.Close()
+	return err
 }

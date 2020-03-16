@@ -124,7 +124,31 @@ func (server *Server) FollowTopicHandler(w http.ResponseWriter, r *http.Request)
 	if err := server.api.AddFollowedTopic(userId, topic); err != nil {
 		log.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
-		http.Error(w, err.Error(), http.StatusMethodNotAllowed)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusAccepted)
+	}
+}
+
+// ResponseToPostHandler handles a thumb-up/down from a user.
+func (server *Server) ResponseToPostHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodPost) {
+		return
+	}
+
+	postId := mux.Vars(r)["postId"]
+	userId := r.FormValue("user_id")
+	action := r.FormValue("action")
+
+	log.Printf("postId: [%s], userId: [%s], action: [%s]\n", postId, userId, action)
+	if !server.CheckIfUserIsLoggedIn(userId, &w) {
+		return
+	}
+
+	if err := server.api.ThumbUpDownPost(postId, userId, action); err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	} else {
 		w.WriteHeader(http.StatusAccepted)
 	}

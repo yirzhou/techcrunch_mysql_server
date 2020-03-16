@@ -41,6 +41,8 @@ func (server *Server) registerRoutes() {
 	server.router.HandleFunc("/users/{userId}/{action:(?:login|logout)}", server.UserAuthHandler)
 	// POST: Post
 	server.router.HandleFunc("/posts/new", server.PostArticleHandler)
+	// POST: Thumb Up
+	server.router.Path("/posts/{postId:[0-9]+}").Queries("user_id", "{userId}", "action", "{action}").HandlerFunc(server.ResponseToPostHandler)
 	// PUT: Join UserGroup
 	server.router.Path("/groups/{groupId:[0-9]+}/add").Queries("user_id", "{userId}").HandlerFunc(server.JoinGroupHandler)
 	// PUT: Follow Topic
