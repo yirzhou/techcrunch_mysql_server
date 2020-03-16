@@ -35,6 +35,8 @@ func (server *Server) registerRoutes() {
 	server.router.HandleFunc("/authors", server.GetPostAuthorHandler)
 	// GET: FollowedTopics
 	server.router.HandleFunc("/users/{userId}/topics", server.GetFollowedTopicsHandler)
+	// GET: NewPosts
+	server.router.HandleFunc("/users/{userId}/new_posts", server.GetNewPostsForUserHandler)
 	// POST: User Authentication
 	server.router.HandleFunc("/users/{userId}/{action:(?:login|logout)}", server.UserAuthHandler)
 	// POST: Post
@@ -43,4 +45,6 @@ func (server *Server) registerRoutes() {
 	server.router.Path("/groups/{groupId:[0-9]+}/add").Queries("user_id", "{userId}").HandlerFunc(server.JoinGroupHandler)
 	// PUT: Follow Topic
 	server.router.Path("/users/{userId}/topics/add").Queries("topic", "{topic}").HandlerFunc(server.FollowTopicHandler)
+	// PUT: Unfollow Topic
+	server.router.Path("/users/{userId}/topics/remove").Queries("topic", "{topic}").HandlerFunc(server.UnfollowTopicHandler)
 }

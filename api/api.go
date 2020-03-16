@@ -78,7 +78,16 @@ func (api *API) AddUserToGroup(groupId int64, userId string) error {
 
 // AddFollowedTopic will add a topic to the followed topics of a user.
 func (api *API) AddFollowedTopic(userId string, topic string) error {
-	stmtIns, err := api.db.Prepare("insert into FollowingTopic values( ?, ?)")
+	stmtIns, err := api.db.Prepare("insert into FollowTopic values( ?, ?)")
+	if _, err := stmtIns.Exec(userId, topic); err != nil {
+		log.Println(err)
+	}
+	return err
+}
+
+// RemoveTopic removes a topic for a user.
+func (api *API) RemoveTopic(userId string, topic string) error {
+	stmtIns, err := api.db.Prepare("delete from FollowTopic where userID=? and topic=?;")
 	if _, err := stmtIns.Exec(userId, topic); err != nil {
 		log.Println(err)
 	}
@@ -87,7 +96,7 @@ func (api *API) AddFollowedTopic(userId string, topic string) error {
 
 // GetFollowedTopics retrieves all the topics the user follows.
 func (api *API) GetFollowedTopics(userId string) ([]byte, error) {
-	q := fmt.Sprintf(`select topic from FollowingTopic where userID='%s';`, userId)
+	q := fmt.Sprintf(`select topic from FollowTopic where userID='%s';`, userId)
 	rows := api.executeQuery(q)
 
 	topics := make([]string, 0)
@@ -101,6 +110,41 @@ func (api *API) GetFollowedTopics(userId string) ([]byte, error) {
 	}
 	defer rows.Close()
 	return json.Marshal(topics)
+}
+
+// GetNewPostsForUser retrieves all the topics the user follows.
+func (api *API) GetNewPostsForUser(userId string) ([]byte, error) {
+
+	/*
+		select * from Post inner join PostTopic using (postID) inner join FollowTopic using (topic), (select lastLoggedIn from User where userID='yirzhou') as T where userID='yirzhou' and T.lastLoggedIn <= Post.date;
+	*/
+
+	q := fmt.Sprintf(`select postID, category, content, date, img_src, section, title, url
+		from Post inner join PostTopic using (postID) inner join FollowTopic using (topic), 
+		(select lastLoggedIn from User where userID='%s') as T where userID='%s' and T.lastLoggedIn <= Post.date;`,
+		userId,
+		userId)
+
+	rows := api.executeQuery(q)
+
+	posts := make([]*Post, 5)
+	for rows.Next() {
+		post := &Post{}
+		if err := rows.Scan(&post.PostID,
+			&post.Category,
+			&post.Content,
+			&post.Date,
+			&post.ImageSrc,
+			&post.Section,
+			&post.Title,
+			&post.URL); err != nil {
+			log.Println(err)
+		}
+		posts = append(posts, post)
+	}
+	defer rows.Close()
+	return json.Marshal(posts)
+
 }
 
 // ListGroupsWithId returns information of available groups.
@@ -146,6 +190,19 @@ func (api *API) GetAuthors() ([]byte, error) {
 
 	jsonResponse, jsonError := json.Marshal(authors)
 	return jsonResponse, jsonError
+}
+
+// IsUserLoggedIn returns a boolean value of the user authenticatiion status.
+func (api *API) IsUserLoggedIn(userId string) bool {
+	q := fmt.Sprintf("select isLoggedIn from User where userID='%s';", userId)
+	rows := api.executeQuery(q)
+	var isLoggedIn bool
+	for rows.Next() {
+		if err := rows.Scan(&isLoggedIn); err != nil {
+			return isLoggedIn
+		}
+	}
+	return isLoggedIn
 }
 
 // AuthenticateUser logs a user in/out depending on the action.

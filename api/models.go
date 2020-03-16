@@ -5,7 +5,8 @@ import (
 	"time"
 )
 
-const DateFormat = "1998-03-30"
+// DateFormat defines the format of time.
+const DateFormat = "2020-03-16 18:46:02"
 
 // Post is a struct that contains the id and the content of a Post.
 type Post struct {

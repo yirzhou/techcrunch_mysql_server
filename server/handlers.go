@@ -14,6 +14,17 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// CheckIfUserIsLoggedIn checks if the user is logged in.
+func (server *Server) CheckIfUserIsLoggedIn(userId string, w *http.ResponseWriter) bool {
+	if !server.api.IsUserLoggedIn(userId) {
+		log.Println("User not logged in.")
+		(*w).WriteHeader(http.StatusMethodNotAllowed)
+		http.Error(*w, "User not logged in.", http.StatusMethodNotAllowed)
+		return false
+	}
+	return true
+}
+
 // GetPostsHandler returns all posts
 func (server *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 	if !server.checkMethod(&w, r, http.MethodGet) {
@@ -77,20 +88,66 @@ func (server *Server) JoinGroupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (server *Server) FollowTopicHandler(w http.ResponseWriter, r *http.Request) {
+// UnfollowTopicHandler fulfils the user request of unfollowing a new topic.
+func (server *Server) UnfollowTopicHandler(w http.ResponseWriter, r *http.Request) {
 	if !server.checkMethod(&w, r, http.MethodPut) {
 		return
 	}
 
 	userId := mux.Vars(r)["userId"]
+	if !server.CheckIfUserIsLoggedIn(userId, &w) {
+		return
+	}
+
 	topic := r.FormValue("topic")
-	if err := server.api.AddFollowedTopic(userId, topic); err != nil {
+	if err := server.api.RemoveTopic(userId, topic); err != nil {
 		log.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, err.Error())
 	} else {
 		w.WriteHeader(http.StatusAccepted)
 	}
+}
+
+// FollowTopicHandler fulfils the user request of following a new topic.
+func (server *Server) FollowTopicHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodPut) {
+		return
+	}
+
+	userId := mux.Vars(r)["userId"]
+	if !server.CheckIfUserIsLoggedIn(userId, &w) {
+		return
+	}
+
+	topic := r.FormValue("topic")
+	if err := server.api.AddFollowedTopic(userId, topic); err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusMethodNotAllowed)
+	} else {
+		w.WriteHeader(http.StatusAccepted)
+	}
+}
+
+// GetNewPostsForUserHandler retrieves the posts added after the time the user was logged in last time.
+func (server *Server) GetNewPostsForUserHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodGet) {
+		return
+	}
+	userId := mux.Vars(r)["userId"]
+	if !server.CheckIfUserIsLoggedIn(userId, &w) {
+		return
+	}
+
+	postsJSON, jsonErr := server.api.GetNewPostsForUser(userId)
+
+	if jsonErr != nil {
+		log.Println(jsonErr)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(postsJSON)
 }
 
 // GetGroupsHandler returns information of available/existing groups.
@@ -140,7 +197,7 @@ func (server *Server) GetPostAuthorHandler(w http.ResponseWriter, r *http.Reques
 	w.Write(authorsJSON)
 }
 
-// CreatePost creates a new post, inserts tags, topics, etc.
+// PostArticleHandler creates a new post, inserts tags, topics, etc.
 func (server *Server) PostArticleHandler(w http.ResponseWriter, r *http.Request) {
 	if !server.checkMethod(&w, r, http.MethodPost) {
 		return
@@ -178,6 +235,7 @@ func (server *Server) PostArticleHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	for _, author := range reqPost.Authors {
+
 		err = server.api.InsertPostAuthor(api.Author{PostID: newPostId, AuthorID: author})
 	}
 
