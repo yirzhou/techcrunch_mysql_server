@@ -25,7 +25,7 @@ func (server *Server) CheckIfUserIsLoggedIn(userId string, w *http.ResponseWrite
 	return true
 }
 
-// GetPostsHandler returns all posts
+// GetPostsHandler returns all posts.
 func (server *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 	if !server.checkMethod(&w, r, http.MethodGet) {
 		return
@@ -41,32 +41,65 @@ func (server *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(postsJSON)
 }
 
+// GetCategoriesHandler returns all categories.
+func (server *Server) GetCategoriesHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodGet) {
+		return
+	}
+
+	categoriesJSON, jsonErr := server.api.GetCategories()
+	if jsonErr != nil {
+		log.Println(jsonErr)
+	}
+	log.Println("categories fetched successfully.")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(categoriesJSON)
+
+}
+
+// GetTopicsHandler returns all categories.
+func (server *Server) GetTopicsHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodGet) {
+		return
+	}
+
+	topicsJSON, jsonErr := server.api.GetTopics()
+	if jsonErr != nil {
+		log.Println(jsonErr)
+	}
+	log.Println("topics fetched successfully.")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(topicsJSON)
+
+}
+
 // UserLogInHandler logs a user in.
 func (server *Server) UserAuthHandler(w http.ResponseWriter, r *http.Request) {
 	if !server.checkMethod(&w, r, http.MethodPost) {
 		return
 	}
-	userId := mux.Vars(r)["userId"]
+
+	userId := r.FormValue("user_id")
+	password := r.FormValue("password")
 	action := mux.Vars(r)["action"]
 
 	var err error
-	if action == "login" {
-		if err = server.api.AuthenticateUser(userId, action); err == nil {
-			w.WriteHeader(http.StatusAccepted)
-		}
-	} else if action == "logout" {
-		if err := server.api.AuthenticateUser(userId, action); err == nil {
+	if action == "login" || action == "logout" {
+		if err = server.api.AuthenticateUser(userId, password, action); err == nil {
+			log.Printf("%s successful for [%s] \n", action, userId)
 			w.WriteHeader(http.StatusAccepted)
 		}
 	} else {
-		log.Println(err.Error())
+		log.Println("wrong action.")
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, err.Error())
 	}
 
 	if err != nil {
 		log.Println(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusNotAcceptable)
 		fmt.Fprint(w, err.Error())
 	}
 }
@@ -84,6 +117,7 @@ func (server *Server) JoinGroupHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, err.Error())
 	} else {
+		log.Printf("join [%s] into [%d] successfully\n", userId, groupId)
 		w.WriteHeader(http.StatusAccepted)
 	}
 }
@@ -105,6 +139,7 @@ func (server *Server) UnfollowTopicHandler(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, err.Error())
 	} else {
+		log.Printf("user [%s] unfollowing topic [%s] successfully\n", userId, topic)
 		w.WriteHeader(http.StatusAccepted)
 	}
 }
@@ -126,6 +161,7 @@ func (server *Server) FollowTopicHandler(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusInternalServerError)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	} else {
+		log.Printf("user [%s] following topic [%s] successfully\n", userId, topic)
 		w.WriteHeader(http.StatusAccepted)
 	}
 }
@@ -150,6 +186,7 @@ func (server *Server) ResponseToPostHandler(w http.ResponseWriter, r *http.Reque
 		w.WriteHeader(http.StatusInternalServerError)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	} else {
+		log.Printf("user [%s] giving post [%s] a [%s] successfully\n", userId, postId, action)
 		w.WriteHeader(http.StatusAccepted)
 	}
 }
@@ -227,6 +264,11 @@ func (server *Server) PostArticleHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	userId := mux.Vars(r)["userId"]
+	if !server.CheckIfUserIsLoggedIn(userId, &w) {
+		return
+	}
+
 	decoder := json.NewDecoder(r.Body)
 	var reqPost api.PostInfo
 	if err := decoder.Decode(&reqPost); err != nil {
@@ -258,24 +300,43 @@ func (server *Server) PostArticleHandler(w http.ResponseWriter, r *http.Request)
 		err = server.api.InsertPostTopic(topicInfo)
 	}
 
-	for _, author := range reqPost.Authors {
-
-		err = server.api.InsertPostAuthor(api.Author{PostID: newPostId, AuthorID: author})
-	}
-
-	if err != nil {
+	if err = server.api.InsertPostAuthor(api.Author{PostID: newPostId, AuthorID: reqPost.Author}); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Printf("Post with ID [%d] failed to be created\n", reqPost.PostID)
+		log.Printf("post with ID [%d] failed to be created\n", reqPost.PostID)
 	} else {
 		w.WriteHeader(http.StatusOK)
-		log.Printf("Post with ID [%d] has been created\n", reqPost.PostID)
+		log.Printf("post with ID [%d] has been created\n", reqPost.PostID)
 	}
+}
+
+func (server *Server) UserSignUpHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodPost) {
+		return
+	}
+
+	r.ParseForm()
+
+	userId := r.FormValue("user_id")
+	firstName := r.FormValue("first_name")
+	lastName := r.FormValue("last_name")
+	password := r.FormValue("password")
+
+	if err := server.api.CreateUser(userId, firstName, lastName, password); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Printf("user [%s] failed to be created\n", userId)
+		http.Error(w, err.Error(), http.StatusMethodNotAllowed)
+	} else {
+		w.WriteHeader(http.StatusAccepted)
+		log.Printf("user [%s] has been created\n", userId)
+	}
+
 }
 
 func (server *Server) checkMethod(w *http.ResponseWriter, r *http.Request, correctMethod string) bool {
 	if r.Method != correctMethod {
+		log.Printf("client method [%s] is invalid.\n", r.Method)
 		(*w).WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprint(*w, "invalid_http_method")
+		fmt.Fprint(*w)
 		return false
 	}
 	return true

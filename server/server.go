@@ -37,10 +37,16 @@ func (server *Server) registerRoutes() {
 	server.router.HandleFunc("/users/{userId}/topics", server.GetFollowedTopicsHandler)
 	// GET: NewPosts
 	server.router.HandleFunc("/users/{userId}/new_posts", server.GetNewPostsForUserHandler)
+	// GET: Category
+	server.router.HandleFunc("/categories", server.GetCategoriesHandler)
+	// GET: Topic
+	server.router.HandleFunc("/topics", server.GetTopicsHandler)
 	// POST: User Authentication
-	server.router.HandleFunc("/users/{userId}/{action:(?:login|logout)}", server.UserAuthHandler)
-	// POST: Post
-	server.router.HandleFunc("/posts/new", server.PostArticleHandler)
+	server.router.HandleFunc("/users/{action:(?:login|logout)}", server.UserAuthHandler)
+	// POST: Sign Up
+	server.router.HandleFunc("/users/new", server.UserSignUpHandler)
+	// POST: New Post
+	server.router.Path("/posts/new").Queries("user_id", "{userId}").HandlerFunc(server.PostArticleHandler)
 	// POST: Thumb Up
 	server.router.Path("/posts/{postId:[0-9]+}").Queries("user_id", "{userId}", "action", "{action}").HandlerFunc(server.ResponseToPostHandler)
 	// PUT: Join UserGroup
