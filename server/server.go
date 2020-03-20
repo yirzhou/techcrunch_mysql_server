@@ -41,6 +41,8 @@ func (server *Server) registerRoutes() {
 	server.router.HandleFunc("/categories", server.GetCategoriesHandler)
 	// GET: Topic
 	server.router.HandleFunc("/topics", server.GetTopicsHandler)
+	// GET: PostTopic
+	server.router.HandleFunc("/posts/topics", server.GetPostTopicsHandler)
 	// POST: User Authentication
 	server.router.HandleFunc("/users/{action:(?:login|logout)}", server.UserAuthHandler)
 	// POST: Sign Up

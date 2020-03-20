@@ -36,6 +36,8 @@ func (server *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 	if jsonErr != nil {
 		log.Println(jsonErr)
 	}
+
+	log.Println("posts fetched successfully.")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(postsJSON)
@@ -272,7 +274,7 @@ func (server *Server) PostArticleHandler(w http.ResponseWriter, r *http.Request)
 	decoder := json.NewDecoder(r.Body)
 	var reqPost api.PostInfo
 	if err := decoder.Decode(&reqPost); err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		return
 	}
 
@@ -309,6 +311,25 @@ func (server *Server) PostArticleHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// GetPostTopicsHandler handles getting PostTopics.
+func (server *Server) GetPostTopicsHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodGet) {
+		return
+	}
+
+	postTopicsJSON, jsonErr := server.api.GetPostTopics()
+
+	if jsonErr != nil {
+		log.Println(jsonErr)
+	}
+
+	log.Println("post topics fetched successfully.")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(postTopicsJSON)
+}
+
+// UserSignUpHandler handles signning up users.
 func (server *Server) UserSignUpHandler(w http.ResponseWriter, r *http.Request) {
 	if !server.checkMethod(&w, r, http.MethodPost) {
 		return

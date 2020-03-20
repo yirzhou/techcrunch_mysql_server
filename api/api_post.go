@@ -332,12 +332,13 @@ func (api *API) GetNewPostsForUser(userId string) ([]byte, error) {
 
 // GetPosts retrieves all posts.
 func (api *API) GetPosts() ([]byte, error) {
-	q := `select * from Post limit 10;`
+	q := `select * from Post inner join PostTopic using (postID);`
 	rows := api.executeQuery(q)
 
-	posts := make([]*Post, 5)
+	posts := make(map[int64]*PostInfo)
 	for rows.Next() {
-		post := &Post{}
+		post := &PostInfo{Topics: make([]string, 0)}
+		var topic string
 		if err := rows.Scan(&post.PostID,
 			&post.Category,
 			&post.Content,
@@ -345,10 +346,14 @@ func (api *API) GetPosts() ([]byte, error) {
 			&post.ImageSrc,
 			&post.Section,
 			&post.Title,
-			&post.URL); err != nil {
+			&post.URL,
+			&topic); err != nil {
 			log.Println(err)
 		}
-		posts = append(posts, post)
+		if _, ok := posts[post.PostID]; !ok {
+			posts[post.PostID] = post
+		}
+		posts[post.PostID].Topics = append(posts[post.PostID].Topics, topic)
 	}
 	defer rows.Close()
 
@@ -386,6 +391,27 @@ func (api *API) GetTopics() ([]byte, error) {
 			log.Println(err)
 		}
 		topics = append(topics, topic)
+	}
+	defer rows.Close()
+
+	return json.Marshal(topics)
+}
+
+// GetPostTopics retrieves categories of all posts.
+func (api *API) GetPostTopics() ([]byte, error) {
+	q := `select * from PostTopic;`
+	rows := api.executeQuery(q)
+	topics := make(map[int64][]string)
+	for rows.Next() {
+		var topic string
+		var postID int64
+		if err := rows.Scan(&postID, &topic); err != nil {
+			log.Println(err)
+		}
+		if _, ok := topics[postID]; !ok {
+			topics[postID] = make([]string, 0)
+		}
+		topics[postID] = append(topics[postID], topic)
 	}
 	defer rows.Close()
 
