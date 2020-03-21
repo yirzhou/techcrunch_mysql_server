@@ -43,6 +43,8 @@ func (server *Server) registerRoutes() {
 	server.router.HandleFunc("/topics", server.GetTopicsHandler)
 	// GET: PostTopic
 	server.router.HandleFunc("/posts/topics", server.GetPostTopicsHandler)
+	// GET: Thumbs
+	server.router.HandleFunc("/posts/{postId:[0-9]+}/thumbs", server.GetThumbsHandler)
 	// POST: User Authentication
 	server.router.HandleFunc("/users/{action:(?:login|logout)}", server.UserAuthHandler)
 	// POST: Sign Up
@@ -51,7 +53,7 @@ func (server *Server) registerRoutes() {
 	server.router.Path("/posts/new").Queries("user_id", "{userId}").HandlerFunc(server.PostArticleHandler)
 	// POST: New Group
 	server.router.Path("/groups/new").Queries("user_id", "{userId}").HandlerFunc(server.NewGroupHandler)
-	// POST: Thumb Up
+	// POST: Thumb Up/Down
 	server.router.Path("/posts/{postId:[0-9]+}").Queries("user_id", "{userId}", "action", "{action}").HandlerFunc(server.ResponseToPostHandler)
 	// PUT: Join UserGroup
 	server.router.Path("/groups/{groupId:[0-9]+}/add").Queries("user_id", "{userId}").HandlerFunc(server.JoinGroupHandler)

@@ -38,6 +38,12 @@ type Topic struct {
 	Topic  sql.NullString `json:"topic"`
 }
 
+// ThumbCount is an object with postID and upCount
+type ThumbCount struct {
+	PostID int64 `json:"post_id"`
+	Thumbs int   `json:"thumbs"`
+}
+
 // PostInfo represents a Post with tags and topics.
 type PostInfo struct {
 	PostID   int64          `json:"post_id"`

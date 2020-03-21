@@ -58,6 +58,20 @@ func (api *API) GetTopicCount(topicInfo Topic) int {
 	return topicCount
 }
 
+// GetPostThumbs returns the number of thumbs of a post.
+func (api *API) GetPostThumbs(postId int64) ([]byte, error) {
+	q := fmt.Sprintf("select upCount from PostThumbUp where postID=%d;", postId)
+	rows := api.executeQuery(q)
+	upCount := 0
+	for rows.Next() {
+		if err := rows.Scan(&upCount); err != nil {
+			log.Println(err)
+		}
+	}
+	defer rows.Close()
+	return json.Marshal(ThumbCount{PostID: postId, Thumbs: upCount})
+}
+
 // InsertPostTag inserts a new tag for a post to DB
 func (api *API) InsertPostTag(tagInfo Tag) error {
 	stmtIns, err := api.db.Prepare("insert into PostTag values( ?, ?)")
@@ -297,22 +311,18 @@ func (api *API) ThumbUpDownPost(postId, userId, action string) error {
 
 // GetNewPostsForUser retrieves all the topics the user follows.
 func (api *API) GetNewPostsForUser(userId string) ([]byte, error) {
-
-	/*
-		select * from Post inner join PostTopic using (postID) inner join FollowTopic using (topic), (select lastLoggedIn from User where userID='yirzhou') as T where userID='yirzhou' and T.lastLoggedIn <= Post.date;
-	*/
-
-	q := fmt.Sprintf(`select postID, category, content, date, img_src, section, title, url
-		from Post inner join PostTopic using (postID) inner join FollowTopic using (topic), 
-		(select lastLoggedIn from User where userID='%s') as T where userID='%s' and T.lastLoggedIn <= Post.date;`,
+	q := fmt.Sprintf(`select postID, category, content, date, img_src, section, title, url, PostTopic.topic, PostAuthor.authorID
+		from Post inner join PostTopic using (postID) inner join PostAuthor using (postID) inner join FollowTopic using (topic), 
+		(select lastLoggedIn from User where userID='%s') as T where userID='%s' and T.lastLoggedIn <= Post.date order by postID desc;`,
 		userId,
 		userId)
 
 	rows := api.executeQuery(q)
 
-	posts := make([]*Post, 5)
+	posts := make(map[int64]*PostInfo)
 	for rows.Next() {
-		post := &Post{}
+		post := &PostInfo{Authors: make([]string, 0), Topics: make([]string, 0)}
+		var topic, author string
 		if err := rows.Scan(&post.PostID,
 			&post.Category,
 			&post.Content,
@@ -320,19 +330,24 @@ func (api *API) GetNewPostsForUser(userId string) ([]byte, error) {
 			&post.ImageSrc,
 			&post.Section,
 			&post.Title,
-			&post.URL); err != nil {
+			&post.URL,
+			&topic,
+			&author); err != nil {
 			log.Println(err)
 		}
-		posts = append(posts, post)
+		if _, ok := posts[post.PostID]; !ok {
+			posts[post.PostID] = post
+		}
+		posts[post.PostID].Topics = append(posts[post.PostID].Topics, topic)
+		posts[post.PostID].Authors = append(posts[post.PostID].Authors, author)
 	}
 	defer rows.Close()
 	return json.Marshal(posts)
-
 }
 
 // GetPosts retrieves all posts.
 func (api *API) GetPosts() ([]byte, error) {
-	q := `select * from Post inner join PostTopic using (postID) inner join PostAuthor using (postID);`
+	q := `select * from Post inner join PostTopic using (postID) inner join PostAuthor using (postID) order by postID desc;`
 	rows := api.executeQuery(q)
 
 	posts := make(map[int64]*PostInfo)
@@ -359,8 +374,7 @@ func (api *API) GetPosts() ([]byte, error) {
 	}
 	defer rows.Close()
 
-	jsonResponse, jsonError := json.Marshal(posts)
-	return jsonResponse, jsonError
+	return json.Marshal(posts)
 }
 
 // GetCategories retrieves all categories.

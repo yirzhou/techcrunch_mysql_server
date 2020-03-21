@@ -226,6 +226,8 @@ func (server *Server) GetNewPostsForUserHandler(w http.ResponseWriter, r *http.R
 	if jsonErr != nil {
 		log.Println(jsonErr)
 	}
+
+	log.Printf("successfully retrieved new posts for user [%s]\n", userId)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(postsJSON)
@@ -241,11 +243,36 @@ func (server *Server) GetGroupsHandler(w http.ResponseWriter, r *http.Request) {
 	if jsonErr != nil {
 		log.Println(jsonErr)
 	}
+
+	log.Println("successfully retrieved groups")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(groupsJSON)
 }
 
+// GetThumbsHandler gets the number of thumbs of a post.
+func (server *Server) GetThumbsHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodGet) {
+		return
+	}
+
+	postId, err := strconv.ParseInt(mux.Vars(r)["postId"], 10, 64)
+	if err != nil {
+		log.Println(err)
+	}
+
+	thumbsJSON, jsonErr := server.api.GetPostThumbs(postId)
+	if jsonErr != nil {
+		log.Println(jsonErr)
+	}
+
+	log.Printf("successfully retrieved thumb count for post id [%d]\n", postId)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(thumbsJSON)
+}
+
+// GetFollowedTopicsHandler returns the topics the user follows.
 func (server *Server) GetFollowedTopicsHandler(w http.ResponseWriter, r *http.Request) {
 	if !server.checkMethod(&w, r, http.MethodGet) {
 		return
