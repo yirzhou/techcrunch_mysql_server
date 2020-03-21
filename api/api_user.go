@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -63,7 +64,7 @@ func (api *API) AuthenticateUser(userId, password, action string) error {
 	var q string
 	if action == "login" {
 		if storedPass := api.GetColumnFromTable("password", "User", "userID", userId); storedPass != nil && storedPass.(string) != password {
-			return errors.New("your password/username is wrong.")
+			return errors.New("your password/username is wrong")
 		}
 
 		q = "update User set lastLoggedIn=?, isLoggedIn=1 where userID=?"
@@ -77,8 +78,37 @@ func (api *API) AuthenticateUser(userId, password, action string) error {
 		return err
 	}
 
-	if _, err = stmtIns.Exec(time.Now(), userId); err != nil {
+	var sqlResult sql.Result
+
+	if sqlResult, err = stmtIns.Exec(time.Now(), userId); err != nil {
 		log.Println(err)
+	}
+
+	if affectedRows, _ := sqlResult.RowsAffected(); affectedRows == 0 {
+		err = fmt.Errorf("user id [%s] does not exist", userId)
+	}
+
+	defer stmtIns.Close()
+
+	return err
+}
+
+// CreateGroup will create a group and add the user to this group.
+func (api *API) CreateGroup(userId string) error {
+	q := `insert into UserGroup (userID) values (?);`
+	stmtIns, err := api.db.Prepare(q)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	var sqlResult sql.Result
+
+	if sqlResult, err = stmtIns.Exec(userId); err != nil {
+		log.Println(err)
+	}
+
+	if affectedRows, _ := sqlResult.RowsAffected(); affectedRows == 0 {
+		err = fmt.Errorf("failed to add user [%s] to the new group", userId)
 	}
 
 	defer stmtIns.Close()

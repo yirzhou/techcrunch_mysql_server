@@ -332,13 +332,13 @@ func (api *API) GetNewPostsForUser(userId string) ([]byte, error) {
 
 // GetPosts retrieves all posts.
 func (api *API) GetPosts() ([]byte, error) {
-	q := `select * from Post inner join PostTopic using (postID);`
+	q := `select * from Post inner join PostTopic using (postID) inner join PostAuthor using (postID);`
 	rows := api.executeQuery(q)
 
 	posts := make(map[int64]*PostInfo)
 	for rows.Next() {
-		post := &PostInfo{Topics: make([]string, 0)}
-		var topic string
+		post := &PostInfo{Authors: make([]string, 0), Topics: make([]string, 0)}
+		var topic, author string
 		if err := rows.Scan(&post.PostID,
 			&post.Category,
 			&post.Content,
@@ -347,13 +347,15 @@ func (api *API) GetPosts() ([]byte, error) {
 			&post.Section,
 			&post.Title,
 			&post.URL,
-			&topic); err != nil {
+			&topic,
+			&author); err != nil {
 			log.Println(err)
 		}
 		if _, ok := posts[post.PostID]; !ok {
 			posts[post.PostID] = post
 		}
 		posts[post.PostID].Topics = append(posts[post.PostID].Topics, topic)
+		posts[post.PostID].Authors = append(posts[post.PostID].Authors, author)
 	}
 	defer rows.Close()
 

@@ -106,6 +106,24 @@ func (server *Server) UserAuthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// NewGroupHandler creates a new group and adds that user to the group.
+func (server *Server) NewGroupHandler(w http.ResponseWriter, r *http.Request) {
+	if !server.checkMethod(&w, r, http.MethodPost) {
+		return
+	}
+
+	userId := r.FormValue("user_id")
+
+	if err := server.api.CreateGroup(userId); err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, err.Error())
+	} else {
+		log.Printf("adding user [%s] to new group successfully\n", userId)
+		w.WriteHeader(http.StatusAccepted)
+	}
+}
+
 // JoinGroupHandler adds a user to an existing group
 func (server *Server) JoinGroupHandler(w http.ResponseWriter, r *http.Request) {
 	if !server.checkMethod(&w, r, http.MethodPut) {
@@ -302,12 +320,14 @@ func (server *Server) PostArticleHandler(w http.ResponseWriter, r *http.Request)
 		err = server.api.InsertPostTopic(topicInfo)
 	}
 
-	if err = server.api.InsertPostAuthor(api.Author{PostID: newPostId, AuthorID: reqPost.Author}); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Printf("post with ID [%d] failed to be created\n", reqPost.PostID)
-	} else {
-		w.WriteHeader(http.StatusOK)
-		log.Printf("post with ID [%d] has been created\n", reqPost.PostID)
+	for _, author := range reqPost.Authors {
+		if err = server.api.InsertPostAuthor(api.Author{PostID: newPostId, AuthorID: author}); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Printf("post with ID [%d] failed to be created\n", reqPost.PostID)
+		} else {
+			w.WriteHeader(http.StatusOK)
+			log.Printf("post with ID [%d] has been created\n", reqPost.PostID)
+		}
 	}
 }
 
