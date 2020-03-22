@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"medium_mysql_server/utils"
 	"time"
 )
 
@@ -63,7 +64,7 @@ func (api *API) IsUserLoggedIn(userId string) bool {
 func (api *API) AuthenticateUser(userId, password, action string) error {
 	var q string
 	if action == "login" {
-		if storedPass := api.GetColumnFromTable("password", "User", "userID", userId); storedPass != nil && storedPass.(string) != password {
+		if storedPass := api.GetColumnFromTable("password", "User", "userID", userId); storedPass != nil && utils.B2S(storedPass.([]uint8)) != password {
 			return errors.New("your password/username is wrong")
 		}
 
