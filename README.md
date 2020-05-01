@@ -1,4 +1,4 @@
-# Fakebook Blogging Project Server
+# A Rudimentary Blogging App
 ## Background
 The project was originally dedicated for the database systems course, but I had a lot of fun learning how to implement the client-server architecture (though not perfect). 
 
