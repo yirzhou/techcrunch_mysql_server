@@ -1,0 +1,10 @@
+title Project Architecture
+
+Client->Backend Server:HTTP request (GET, POST, PUT, DELETE, UPDATE, etc.)
+Backend Server->Database Server:invokes SQL query
+
+note over Database Server:executes SQL query 
+Database Server->Backend Server:returns row(s)
+note over Backend Server:packages row(s) in JSON
+note over Backend Server:writes error to HTTP header if any
+Backend Server->Client:returns HTTP response
