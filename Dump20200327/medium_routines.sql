@@ -48,7 +48,6 @@ SET character_set_client = @saved_cs_client;
 /*!50001 SET @saved_col_connection     = @@collation_connection */;
 /*!50001 SET character_set_client      = utf8mb4 */;
 /*!50001 SET character_set_results     = utf8mb4 */;
-/*!50001 SET collation_connection      = utf8mb4_0900_ai_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
 /*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
 /*!50001 VIEW `PostInfo` AS select `Post`.`postID` AS `postID`,`Post`.`category` AS `category`,`Post`.`content` AS `content`,`Post`.`date` AS `date`,`Post`.`img_src` AS `img_src`,`Post`.`section` AS `section`,`Post`.`title` AS `title`,`Post`.`url` AS `url`,`PostTopic`.`topic` AS `topic`,`PostThumbUp`.`upCount` AS `upCount` from ((`Post` join `PostTopic` on((`Post`.`postID` = `PostTopic`.`postID`))) left join `PostThumbUp` on((`Post`.`postID` = `PostThumbUp`.`postID`))) union select `PostThumbUp`.`postID` AS `postID`,`PostThumbUp`.`upCount` AS `upCount`,`Post`.`category` AS `category`,`Post`.`content` AS `content`,`Post`.`date` AS `date`,`Post`.`img_src` AS `img_src`,`Post`.`section` AS `section`,`Post`.`title` AS `title`,`Post`.`url` AS `url`,`PostTopic`.`topic` AS `topic` from (`PostThumbUp` left join (`Post` join `PostTopic` on((`Post`.`postID` = `PostTopic`.`postID`))) on((`Post`.`postID` = `PostThumbUp`.`postID`))) */;
