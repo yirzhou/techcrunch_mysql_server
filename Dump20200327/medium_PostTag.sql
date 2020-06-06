@@ -34,7 +34,7 @@ CREATE TABLE `PostTag` (
   CONSTRAINT `PostTag_ibfk_3` FOREIGN KEY (`postID`) REFERENCES `Post` (`postID`) ON DELETE CASCADE,
   CONSTRAINT `PostTag_ibfk_4` FOREIGN KEY (`postID`) REFERENCES `Post` (`postID`),
   CONSTRAINT `PostTag_ibfk_5` FOREIGN KEY (`tag`) REFERENCES `Tag` (`tag`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --

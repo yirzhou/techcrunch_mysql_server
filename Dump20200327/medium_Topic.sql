@@ -27,7 +27,7 @@ DROP TABLE IF EXISTS `Topic`;
 CREATE TABLE `Topic` (
   `topic` varchar(100) NOT NULL,
   PRIMARY KEY (`topic`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --

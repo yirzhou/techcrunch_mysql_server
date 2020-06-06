@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	InstanceId = "i-082a39858ce1d7279"
+	InstanceId = "i-02b3bb544578b8095"
 	Region     = "us-east-1"
 	Port       = 3306
-	GoUser     = "go:zhou98@tcp"
+	GoUser     = "go:gouser@tcp"
 	ThumbUp    = "thumbup"
 	ThumbDown  = "thumbdown"
 )
