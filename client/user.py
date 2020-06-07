@@ -107,9 +107,11 @@ class User:
         if r.status_code == 202:
             Utils.clear()
             print("See you next time, {0}!\n".format(self.user_id))
+            sleep(1)
         else:
             Utils.clear()
-            print("Oops! Something is wrong.")\
+            print("Oops! Something is wrong.")
+            sleep(1)
 
     def create_post(self):
         user_category = self.__get_category()
@@ -124,6 +126,7 @@ class User:
     def join_group(self):
         groups_dict = requests.get(url=self.get_route('groups')).json()
         group_id = Utils.print_group(groups_dict)
+        if group_id == ':q': return
         status_code = requests.put(self.get_route('groups/{0}/add'.format(str(group_id))), params={'user_id': self.user_id}).status_code
         Utils.handle_status_code(status_code)
     

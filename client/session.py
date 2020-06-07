@@ -28,10 +28,11 @@ class Session:
         1. Log In
         2. Sign Up
         3. Exit\n'''
-        user = None
         while True:
+            user = None
             Utils.clear()
             client_opt = input(start_up_panel)
+            print(client_opt)
             if client_opt == '1':
                 while not user:
                     Utils.clear()
@@ -45,7 +46,7 @@ class Session:
             elif client_opt == '3':
                 Utils.clear()
                 print('See you next time!\n')
-                sleep(2)
+                sleep(1)
                 Utils.clear()
                 sys.exit(0)
                 
