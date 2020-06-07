@@ -122,7 +122,7 @@ go run .
 ```
 
 #### 2.2 Client
-###### Requirements
+##### Requirements
 1. [Requests: HTTP for Humans](https://2.python-requests.org/en/master/)
 Within folder `client`, run the following to start the client:
 ```zsh
