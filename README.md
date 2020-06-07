@@ -102,7 +102,7 @@ Other types of requests such as `POST`, `UPDATE`, `PUT`, etc. are handled in sim
 
 ### 1.3 Client
 The client is implemented in Python, and it is a rudimentary command-line interface. It allows new users to sign up, log in, and after logging in:
-* get posts of the topics the user follows since he/she last logged in
+* get posts of the topics the user follows
 * join an existing group
 * create a new group
 * get all posts

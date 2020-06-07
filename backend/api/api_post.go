@@ -313,7 +313,7 @@ func (api *API) ThumbUpDownPost(postId, userId, action string) error {
 func (api *API) GetNewPostsForUser(userId string) ([]byte, error) {
 	q := fmt.Sprintf(`select postID, category, content, date, img_src, section, title, url, PostTopic.topic, PostAuthor.authorID
 		from Post inner join PostTopic using (postID) inner join PostAuthor using (postID) inner join FollowTopic using (topic), 
-		(select lastLoggedIn from User where userID='%s') as T where userID='%s' and T.lastLoggedIn <= Post.date order by postID desc;`,
+		(select lastLoggedIn from User where userID='%s') as T where userID='%s';`,
 		userId,
 		userId)
 
