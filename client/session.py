@@ -32,7 +32,6 @@ class Session:
             user = None
             Utils.clear()
             client_opt = input(start_up_panel)
-            print(client_opt)
             if client_opt == '1':
                 while not user:
                     Utils.clear()

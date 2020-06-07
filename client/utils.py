@@ -159,7 +159,7 @@ class Utils:
                         print('Please enter a valid input!\n')
                 else:
                     break    
-                sleep(3)
+                sleep(0.5)
 
     @staticmethod
     def print_post_metadata(keys, dictionary):

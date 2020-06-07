@@ -156,7 +156,7 @@ class User:
                 options = '''
                 
                 Please choose one of the following:\n
-                1. Check new posts of the topics you like.    
+                1. Check posts of the topics you like.    
                 2. Join a group.
                 3. Create a group.
                 4. Just show me all of the posts!
