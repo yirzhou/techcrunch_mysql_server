@@ -112,12 +112,18 @@ The client will send corresponding HTTP requests to `http://127.0.0.1:8080`, whi
 
 ### 2. How to run the project?
 #### 2.1 Server
+##### Requirements
+1. [Gorrila Mux](https://github.com/gorilla/mux)
+2. [AWS SDK for the Go programming language.](https://github.com/aws/aws-sdk-go)
+3. [Go MySQL Driver](https://github.com/Go-SQL-Driver/MySQL/)
 Copy folder `backend` to your `GOPATH`. Within `backend`, run the following to start the server:
 ```zsh
 go run .
 ```
 
 #### 2.2 Client
+###### Requirements
+1. [Requests: HTTP for Humans](https://2.python-requests.org/en/master/)
 Within folder `client`, run the following to start the client:
 ```zsh
 python3 main.py
