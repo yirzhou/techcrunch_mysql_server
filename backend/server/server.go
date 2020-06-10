@@ -36,7 +36,7 @@ func (server *Server) registerRoutes() {
 	// GET: FollowedTopics
 	server.router.HandleFunc("/users/{userId}/topics", server.GetFollowedTopicsHandler)
 	// GET: NewPosts
-	server.router.HandleFunc("/users/{userId}/new_posts", server.GetNewPostsForUserHandler)
+	server.router.HandleFunc("/users/{userId}/new_posts", server.GetSubscribedPostsForUserHandler)
 	// GET: Category
 	server.router.HandleFunc("/categories", server.GetCategoriesHandler)
 	// GET: Topic

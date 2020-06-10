@@ -211,8 +211,8 @@ func (server *Server) ResponseToPostHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-// GetNewPostsForUserHandler retrieves the posts added after the time the user was logged in last time.
-func (server *Server) GetNewPostsForUserHandler(w http.ResponseWriter, r *http.Request) {
+// GetSubscribedPostsForUserHandler retrieves the posts related to topics the user subscribes to.
+func (server *Server) GetSubscribedPostsForUserHandler(w http.ResponseWriter, r *http.Request) {
 	if !server.checkMethod(&w, r, http.MethodGet) {
 		return
 	}
